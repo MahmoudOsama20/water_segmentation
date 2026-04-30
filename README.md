@@ -404,4 +404,3 @@ The Flask app reads these environment variables at runtime:
 
 - Dataset: [Harmonized Landsat Sentinel-2 (HLS)](https://lpdaac.usgs.gov/products/hlss30v002/)
 - DeepLabV3+ implementation: [segmentation-models-pytorch](https://github.com/qubvel/segmentation_models.pytorch)
-- Developed as part of **Cellula Technologies — Week 3 Project**
