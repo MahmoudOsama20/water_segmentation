@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaVision — Water Body Segmentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- Animated background -->
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">AquaVision</span>
+      </div>
+      <div class="service-status" id="statusBar">
+        <div class="status-pill" id="pill-flask">
+          <span class="dot" id="dot-flask"></span>
+          <span>App</span>
+        </div>
+        <div class="status-pill" id="pill-unet">
+          <span class="dot" id="dot-unet"></span>
+          <span>U-Net</span>
+        </div>
+        <div class="status-pill" id="pill-deeplab">
+          <span class="dot" id="dot-deeplab"></span>
+          <span>DeepLab</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-label">Satellite Multispectral Analysis</div>
+      <h1 class="hero-title">
+        Detect Water Bodies<br>
+        <span class="hero-accent">with Precision</span>
+      </h1>
+      <p class="hero-sub">
+        Upload a 12-band GeoTIFF patch and let two deep learning models —
+        U-Net and DeepLabV3+ — segment water bodies and ensemble their predictions.
+      </p>
+    </section>
+
+    <!-- Upload section -->
+    <section class="upload-section">
+
+      <!-- Image upload -->
+      <div class="upload-card" id="imageCard" onclick="triggerUpload('imageFile')">
+        <div class="upload-card-inner">
+          <div class="upload-icon-wrap">
+            <svg class="upload-icon" viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="4" width="40" height="40" rx="8" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M4 32 L16 20 L24 28 L32 18 L44 32" stroke="currentColor" stroke-width="1.5" fill="none"/>
+              <circle cx="34" cy="14" r="4" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="upload-text">
+            <div class="upload-title">Multispectral Image</div>
+            <div class="upload-hint">.tif · .tiff · 128 × 128 × 12 bands</div>
+          </div>
+          <div class="upload-badge" id="imageBadge">Click to upload</div>
+        </div>
+        <input type="file" id="imageFile" accept=".tif,.tiff" hidden
+               onchange="onFileChosen(this, 'imageBadge', 'imageCard')">
+      </div>
+
+      <!-- Mask upload -->
+      <div class="upload-card optional" id="maskCard" onclick="triggerUpload('maskFile')">
+        <div class="upload-card-inner">
+          <div class="upload-icon-wrap">
+            <svg class="upload-icon" viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="4" width="40" height="40" rx="8" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M14 24 L20 30 L34 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="upload-text">
+            <div class="upload-title">Ground Truth <span class="optional-tag">optional</span></div>
+            <div class="upload-hint">.png · .tif · .npy binary mask</div>
+          </div>
+          <div class="upload-badge" id="maskBadge">Click to upload</div>
+        </div>
+        <input type="file" id="maskFile" accept=".tif,.tiff,.png,.npy" hidden
+               onchange="onFileChosen(this, 'maskBadge', 'maskCard')">
+      </div>
+
+    </section>
+
+    <!-- Run button -->
+    <div class="run-wrap">
+      <button class="btn-run" id="runBtn" onclick="runPrediction()">
+        <span class="btn-label">Run Segmentation</span>
+        <span class="btn-arrow">→</span>
+      </button>
+      <div class="spinner-wrap" id="spinner">
+        <div class="spinner-ring"></div>
+        <span>Running inference on both models…</span>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-banner" id="errorBanner">
+      <span class="error-icon">!</span>
+      <span id="errorMsg"></span>
+    </div>
+
+    <!-- Results -->
+    <section class="results" id="results">
+
+      <!-- Divider -->
+      <div class="section-divider">
+        <span class="divider-line"></span>
+        <span class="divider-label">Segmentation Results</span>
+        <span class="divider-line"></span>
+      </div>
+
+      <!-- Mask cards -->
+      <div class="masks-grid">
+
+        <div class="mask-card" id="card-unet">
+          <div class="mask-card-header">
+            <span class="model-tag unet-tag">U-Net</span>
+            <span class="model-pct" id="unet-pct"></span>
+          </div>
+          <div class="mask-img-wrap">
+            <img id="unet-img" src="" alt="U-Net segmentation mask">
+            <div class="mask-overlay">
+              <span class="mask-overlay-text">U-Net Prediction</span>
+            </div>
+          </div>
+          <div class="mask-card-footer">
+            <div class="water-bar-wrap">
+              <div class="water-bar" id="unet-bar"></div>
+            </div>
+            <span class="water-label">water coverage</span>
+          </div>
+        </div>
+
+        <div class="mask-card ensemble-card" id="card-ensemble">
+          <div class="ensemble-crown">✦ Best Prediction</div>
+          <div class="mask-card-header">
+            <span class="model-tag ensemble-tag">Ensemble</span>
+            <span class="model-pct" id="ensemble-pct"></span>
+          </div>
+          <div class="mask-img-wrap">
+            <img id="ensemble-img" src="" alt="Ensemble segmentation mask">
+            <div class="mask-overlay">
+              <span class="mask-overlay-text">Ensemble Prediction</span>
+            </div>
+          </div>
+          <div class="mask-card-footer">
+            <div class="water-bar-wrap">
+              <div class="water-bar" id="ensemble-bar"></div>
+            </div>
+            <span class="water-label">water coverage</span>
+          </div>
+        </div>
+
+        <div class="mask-card" id="card-deeplab">
+          <div class="mask-card-header">
+            <span class="model-tag deeplab-tag">DeepLabV3+</span>
+            <span class="model-pct" id="deeplab-pct"></span>
+          </div>
+          <div class="mask-img-wrap">
+            <img id="deeplab-img" src="" alt="DeepLab segmentation mask">
+            <div class="mask-overlay">
+              <span class="mask-overlay-text">DeepLab Prediction</span>
+            </div>
+          </div>
+          <div class="mask-card-footer">
+            <div class="water-bar-wrap">
+              <div class="water-bar" id="deeplab-bar"></div>
+            </div>
+            <span class="water-label">water coverage</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Metrics table -->
+      <div class="metrics-wrap" id="metricsWrap">
+        <div class="metrics-header">
+          <span class="metrics-title">Performance Metrics</span>
+          <span class="metrics-sub">Compared against ground truth mask</span>
+        </div>
+        <div class="metrics-table-wrap">
+          <table class="metrics-table">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>IoU</th>
+                <th>F1 Score</th>
+                <th>Precision</th>
+                <th>Recall</th>
+              </tr>
+            </thead>
+            <tbody id="metricsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>AquaVision · Water Body Segmentation</span>
+    <span class="footer-sep">·</span>
+    <span>Cellula Technologies</span>
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+version: '3.9'
+
+services:
+
+  # ── U-Net Model Service ──────────────────────────────────────
+  unet-service:
+    image: aquavision-unet
+    container_name: aquavision_unet
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./models:/models:ro
+    environment:
+      - TF_ENABLE_ONEDNN_OPTS=0
+      - TF_CPP_MIN_LOG_LEVEL=2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── DeepLab Model Service ────────────────────────────────────
+  deeplab-service:
+    image: aquavision-deeplab
+    container_name: aquavision_deeplab
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./models:/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── Flask App ────────────────────────────────────────────────
+  flask-app:
+    image: aquavision-flask
+    container_name: aquavision_flask
+    ports:
+      - "5000:5000"
+    environment:
+      - UNET_URL=http://unet-service:5001/predict
+      - DEEPLAB_URL=http://deeplab-service:5002/predict
+      - UNET_HEALTH=http://unet-service:5001/health
+      - DEEPLAB_HEALTH=http://deeplab-service:5002/health
+    depends_on:
+      unet-service:
+        condition: service_healthy
+      deeplab-service:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  default:
+    name: aquavision-network
