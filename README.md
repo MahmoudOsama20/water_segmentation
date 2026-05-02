@@ -8,11 +8,15 @@
 ![Flask](https://img.shields.io/badge/Flask-3.0.3-000000?style=flat&logo=flask&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
 ![Keras](https://img.shields.io/badge/Keras-3.10.0-D00000?style=flat&logo=keras&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-EC2-FF9900?style=flat&logo=amazonaws&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat&logo=nginx&logoColor=white)
 
 **A deep learning system for accurate water body segmentation from multispectral satellite imagery.**  
-Built with U-Net and DeepLabV3+, deployed as microservices using Flask and Docker Compose.
+Built with U-Net and DeepLabV3+, deployed as microservices using Flask and Docker Compose on AWS EC2.
 
-[Overview](#-overview) • [Dataset](#-dataset) • [Models](#-models) • [Results](#-results) • [Installation](#-installation) • [Deployment](#-deployment)
+### 🌍 [Live Demo → https://aquavision.ddns.net](https://aquavision.ddns.net)
+
+[Overview](#-overview) • [Dataset](#-dataset) • [Models](#-models) • [Results](#-results) • [Installation](#-installation) • [Deployment](#-deployment) • [Cloud](#-cloud-deployment)
 
 </div>
 
@@ -156,7 +160,7 @@ All 3 services run as Docker containers on the same internal network (`aquavisio
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/water_segmentation.git
+git clone https://github.com/MahmoudOsama20/water_segmentation.git
 cd water_segmentation
 ```
 
@@ -400,7 +404,92 @@ The Flask app reads these environment variables at runtime:
 
 ---
 
+## ☁️ Cloud Deployment
+
+The app is deployed on **AWS EC2** with a free domain and HTTPS.
+
+### Infrastructure
+
+| Component | Details |
+|-----------|---------|
+| Cloud provider | AWS EC2 |
+| Instance type | t3.medium (2 vCPU, 4GB RAM) |
+| OS | Ubuntu Server 22.04 LTS |
+| Storage | 60 GB gp3 |
+| IP | AWS Elastic IP (static) |
+| Domain | No-IP free subdomain |
+| Reverse proxy | Nginx |
+| SSL | Let's Encrypt (free, auto-renew) |
+
+### Architecture on AWS
+
+```
+Internet
+    │
+    │  https://aquavision.ddns.net
+    ▼
+┌─────────────────────────────────┐
+│         Nginx (port 80/443)     │
+│         SSL Termination         │
+└──────────────┬──────────────────┘
+               │ proxy_pass
+               ▼
+┌─────────────────────────────────┐
+│      Docker Compose Network     │
+│      (aquavision-network)       │
+│                                 │
+│  ┌──────────┐  ┌─────────────┐ │
+│  │ U-Net    │  │ DeepLabV3+  │ │
+│  │ :5001    │  │ :5002       │ │
+│  └──────────┘  └─────────────┘ │
+│         ▲            ▲         │
+│         └────────────┘         │
+│              ▲                  │
+│  ┌───────────────────────────┐ │
+│  │    Flask App :5000        │ │
+│  └───────────────────────────┘ │
+└─────────────────────────────────┘
+```
+
+### Deploy to Your Own Server
+
+```bash
+# 1. SSH into your EC2 instance
+ssh -i "your-key.pem" ubuntu@YOUR_EC2_IP
+
+# 2. Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker ubuntu
+newgrp docker
+sudo apt-get install -y docker-compose-plugin
+
+# 3. Install Git LFS
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt-get install -y git-lfs
+git lfs install
+
+# 4. Clone repo and pull models
+git clone https://github.com/MahmoudOsama20/water_segmentation.git
+cd water_segmentation
+git lfs pull
+
+# 5. Build images
+docker build -t aquavision-unet ./unet_service
+docker build -t aquavision-deeplab ./deeplab_service
+docker build -t aquavision-flask ./flask_app
+
+# 6. Run
+docker compose up -d
+
+# 7. Install Nginx + SSL
+sudo apt-get install -y nginx certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.ddns.net
+```
+
+---
+
 ## 🙏 Acknowledgements
 
-- Dataset: [Harmonized Landsat Sentinel-2 (HLS)](https://lpdaac.usgs.gov/products/hlss30v002/)
+- Dataset: [Harmonized Landsat Sentinel-2 (HLS)](https://www.kaggle.com/datasets/mahmoudosamahassan/satellite-dataset)
 - DeepLabV3+ implementation: [segmentation-models-pytorch](https://github.com/qubvel/segmentation_models.pytorch)
