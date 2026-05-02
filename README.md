@@ -491,5 +491,5 @@ sudo certbot --nginx -d your-domain.ddns.net
 
 ## 🙏 Acknowledgements
 
-- Dataset: [Harmonized Landsat Sentinel-2 (HLS)](https://www.kaggle.com/datasets/mahmoudosamahassan/satellite-dataset)
+- Dataset: [Water Segmentation Satellite Dataset](https://www.kaggle.com/datasets/mahmoudosamahassan/satellite-dataset)
 - DeepLabV3+ implementation: [segmentation-models-pytorch](https://github.com/qubvel/segmentation_models.pytorch)
